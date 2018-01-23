@@ -8,7 +8,7 @@
 <h1>Step 1</h1>
 <ul>
 <li>
-	<code>git clone ...</code>
+	<code>git clone https://github.com/rkelecava/twyc.git twyc</code>
 </li>
 <li>
 	<code>cd twyc</code>
