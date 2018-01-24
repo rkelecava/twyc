@@ -9,11 +9,11 @@ const Schema = new mongoose.Schema({
     salt: String,
     first: String,
     last: String,
-    roles: [],
+    roles: [String],
     profiles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Profile' }],
     foods: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Userfood' }],
     exercises: [],
-    meals: []
+    meals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Meal' }]
 });
 
 Schema.methods.setPassword = function (password) {

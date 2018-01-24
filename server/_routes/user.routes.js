@@ -3,6 +3,7 @@ const express = require('express'),
     User = require('../_models/User.model'),
     Userfood = require('../_models/Userfood.model'),
     Profile = require('../_models/Profile.model'),
+    Meal = require('../_models/Meal.model'),
     Passport = require('passport'),
     jwt = require('express-jwt'),
     Authorize = require('../_helpers/Authorize'),
@@ -24,11 +25,76 @@ router.get('/', auth, Authorize.isAdmin, (req, res) => {
 
 // Get user by _id
 router.get('/:id', auth, Authorize.isAdmin, (req, res) => {
-    User.findById(req.params.id).populate('profiles').populate('foods').exec((err, user) => {
+    User.findById(req.params.id).populate({ path: 'profiles foods meals' }).exec((err, user) => {
         if (err) { return res.status(400).json(err); }
         res.json(user);       
     });
 });
+
+// Update a user
+router.put('/:id', auth, Authorize.isAdmin, (req, res) => {
+    User.findById(req.params.id, (err, user) => {
+        if (err) { return res.status(400).json(err); }
+        if (req.body.password) {
+            user.setPassword(req.body.password);
+        }
+        if (req.body.first) {
+            user.first = req.body.first;
+        }
+        if (req.body.last) {
+            user.last = req.body.last;
+        }
+        user.save((err, user) => {
+            if (err) { return res.status(400).json(err); }
+            res.json(user);
+        });
+    });
+});
+
+// Give a user admin permission
+router.get('/:id/makeAdmin', auth, Authorize.isAdmin, (req, res) => {
+    User.findById(req.params.id, (err, user) => {
+        if (err) { return res.status(400).json(err); }
+        var found = false;
+        async.forEach(user.roles, (role, callbackRole) => {
+            if (role === 'admin') {
+                found = true;
+            }
+            callbackRole();
+        }, (err) => {   
+            if (!found) {
+                user.roles.push('admin');
+            }
+            user.save((err, user) => {
+                if (err) { return res.status(400).json(err); }
+                res.json(user);
+            });
+        });
+    });
+});
+
+// Revoke a user admin permission
+router.get('/:id/revokeAdmin', auth, Authorize.isAdmin, (req, res) => {
+    User.findById(req.params.id, (err, user) => {
+        if (err) { return res.status(400).json(err); }
+        var found = false;
+        async.forEach(user.roles, (role, callbackRole) => {
+            if (role === 'admin') {
+                found = true;
+            }
+            callbackRole();
+        }, (err) => {   
+            if (found) {
+                user.roles.splice(user.roles.indexOf('admin'), 1);
+            }
+            user.save((err, user) => {
+                if (err) { return res.status(400).json(err); }
+                res.json(user);
+            });
+        });
+    });
+});
+
 
 // Delete a user
 router.delete('/:id', auth, Authorize.isAdmin, (req, res) => {
@@ -47,10 +113,17 @@ router.delete('/:id', auth, Authorize.isAdmin, (req, res) => {
                 });
             }, (err) => {
                 if (err) { return res.status(400).json(err); }
-                User.remove({ _id: req.params.id }, (err) => {
-                    if (err) { return res.status(400).json(err); }
-                    res.json({ msg: 'Removed' });
-                });
+                async.each(user.meals, (meal, mealDeleted) => {
+                    Meal.remove({ _id: meal }, (err) => {
+                        if (err) { return res.status(400).json(err); }
+                        mealDeleted(); 
+                    });
+                }, (err) => {
+                    User.remove({ _id: req.params.id }, (err) => {
+                        if (err) { return res.status(400).json(err); }
+                        res.json({ msg: 'Removed' });
+                    });
+                })
             });
         });
     });
