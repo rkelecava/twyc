@@ -3,6 +3,9 @@ const express = require('express'),
     jwt = require('express-jwt'),
     Authorize = require('../_helpers/Authorize'),
     Defaultfood = require('../_models/Defaultfood.model'),
+    User = require('../_models/User.model'),
+    Meal = require('../_models/Meal.model'),
+    async = require('async'),
     router = express.Router();
 
 var auth = jwt({ 
@@ -70,11 +73,31 @@ router.put('/:id', auth, Authorize.isAdmin, (req, res) => {
     });
 });
 
-// Delete a default food
+// Delete a user food
 router.delete('/:id', auth, Authorize.isAdmin, (req, res) => {
     Defaultfood.remove({ _id: req.params.id }, (err) => {
         if (err) { return res.status(400).json(err); }
-        res.json({ msg: 'Removed' });
+        User.find().exec((err, users) => {
+            if (err) { return res.status(400).json(err); }
+            async.each(users, (user, callbackUser) => {
+                async.each(user.meals, (meal, callBackMeal) => {
+                    Meal.findById(meal, (err, m) => {
+                        if (err) { return res.status(400).json(err); }
+                        m.defaultfoods.splice(m.defaultfoods.indexOf(req.params.id), 1);
+                        m.save((err) => {
+                            if (err) { return res.status(400).json(err); }
+                            callBackMeal();  
+                        });
+                    });
+                }, (err) => {
+                    if (err) { return res.status(400).json(err); }
+                    callbackUser();
+                });
+            }, (err) => {
+                if (err) { return res.status(400).json(err); }
+                res.json({ msg: 'Removed' });
+            });
+        });
     });
 });
 

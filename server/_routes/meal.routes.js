@@ -4,6 +4,7 @@ const express = require('express'),
     Authorize = require('../_helpers/Authorize'),
     User = require('../_models/User.model'),
     Meal = require('../_models/Meal.model'),
+    Userfood = require('../_models/Userfood.model'),
     router = express.Router();
 
 var auth = jwt({ 
@@ -47,6 +48,66 @@ router.post('/', auth, (req, res) => {
                     if (err) { return res.status(400).json(err); }
                     res.json(user);
                 });
+            });
+        });
+    });
+});
+
+// Add a user food to a user defined meal
+router.get('/addUserFoodToMeal/:meal/:userfood', (req, res) => {
+    Meal.findById({ _id: req.params.meal }, (err, meal) => {
+        if (err) { return res.status(400).json(err); }
+        meal.userfoods.push(req.params.userfood);
+        meal.save((err) => {
+            if (err) { return res.status(400).json(err); }
+            Meal.findById({ _id: req.params.meal }).populate('userfoods').exec((err, meal) => {
+                if (err) { return res.status(400).json(err); }
+                res.json(meal);
+            });
+        });
+    });
+});
+
+// Remove a user food from a user defined meal
+router.get('/removeUserFoodFromMeal/:meal/:userfood', (req, res) => {
+    Meal.findById({ _id: req.params.meal }, (err, meal) => {
+        if (err) { return res.status(400).json(err); }
+        meal.userfoods.splice(meal.userfoods.indexOf(req.params.userfood), 1);
+        meal.save((err) => {
+            if (err) { return res.status(400).json(err); }
+            Meal.findById({ _id: req.params.meal }).populate('userfoods').exec((err, meal) => {
+                if (err) { return res.status(400).json(err); }
+                res.json(meal);
+            });
+        });
+    });
+});
+
+// Add a default food to a user defined meal
+router.get('/addDefaultFoodToMeal/:meal/:defaultfood', (req, res) => {
+    Meal.findById({ _id: req.params.meal }, (err, meal) => {
+        if (err) { return res.status(400).json(err); }
+        meal.defaultfoods.push(req.params.defaultfood);
+        meal.save((err) => {
+            if (err) { return res.status(400).json(err); }
+            Meal.findById({ _id: req.params.meal }).populate('defaultfoods').exec((err, meal) => {
+                if (err) { return res.status(400).json(err); }
+                res.json(meal);
+            });
+        });
+    });
+});
+
+// Remove a default food from a user defined meal
+router.get('/removeDefaultFoodFromMeal/:meal/:defaultfood', (req, res) => {
+    Meal.findById({ _id: req.params.meal }, (err, meal) => {
+        if (err) { return res.status(400).json(err); }
+        meal.defaultfoods.splice(meal.defaultfoods.indexOf(req.params.defaultfood), 1);
+        meal.save((err) => {
+            if (err) { return res.status(400).json(err); }
+            Meal.findById({ _id: req.params.meal }).populate('defaultfoods').exec((err, meal) => {
+                if (err) { return res.status(400).json(err); }
+                res.json(meal);
             });
         });
     });

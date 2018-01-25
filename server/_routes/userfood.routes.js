@@ -5,6 +5,8 @@ const express = require('express'),
     User = require('../_models/User.model'),
     Userfood = require('../_models/Userfood.model'),
     Defaultfood = require('../_models/Defaultfood.model'),
+    Meal = require('../_models/Meal.model'),
+    async = require('async'),
     router = express.Router();
 
 var auth = jwt({ 
@@ -103,14 +105,26 @@ router.put('/:id', auth, (req, res) => {
 router.delete('/:id', auth, (req, res) => {
     Userfood.remove({ _id: req.params.id }, (err) => {
         if (err) { return res.status(400).json(err); }
-        User.findById(req.payload._id, (err, user) => {
+        User.findById(req.payload._id).exec((err, user) => {
             if (err) { return res.status(400).json(err); }
             user.foods.pull(req.params.id);
-            user.save((err) => {
-                if (err) { return res.status(400).json(err); }
-                User.findById(req.payload._id).populate('profiles').populate('foods').exec((err, user) => {
+            async.each(user.meals, (meal, callBackMeal) => {
+                Meal.findById(meal, (err, m) => {
                     if (err) { return res.status(400).json(err); }
-                    res.json(user);
+                    m.userfoods.splice(m.userfoods.indexOf(req.params.id), 1);
+                    m.save((err) => {
+                        if (err) { return res.status(400).json(err); }
+                        callBackMeal();  
+                    });
+                });
+            }, (err) => {
+                if (err) { return res.status(400).json(err); }
+                user.save((err) => {
+                    if (err) { return res.status(400).json(err); }
+                    User.findById(req.payload._id).populate('profiles').populate('foods').exec((err, user) => {
+                        if (err) { return res.status(400).json(err); }
+                        res.json(user);
+                    });
                 });
             });
         });
