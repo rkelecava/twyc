@@ -32,7 +32,7 @@ router.post('/', auth, (req, res) => {
 
 // Get user profile by _id
 router.get('/:id', (req, res) => {
-    Profile.findById(req.params.id).populate('meals').populate('excersises').exec((err, profile) => {
+    Profile.findById(req.params.id).populate('entries').exec((err, profile) => {
         if (err) { return res.status(400).json(err); }
         res.json(profile);       
     });

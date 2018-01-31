@@ -2,6 +2,7 @@
 const express = require('express'),
     User = require('../_models/User.model'),
     Userfood = require('../_models/Userfood.model'),
+    Entry = require('../_models/Entry.model'),
     Profile = require('../_models/Profile.model'),
     Meal = require('../_models/Meal.model'),
     Passport = require('passport'),
@@ -27,7 +28,14 @@ router.get('/', auth, Authorize.isAdmin, (req, res) => {
 router.get('/:id', auth, Authorize.isAdmin, (req, res) => {
     User.findById(req.params.id).populate({ path: 'profiles foods meals' }).exec((err, user) => {
         if (err) { return res.status(400).json(err); }
-        res.json(user);       
+        async.forEach(user.profiles, (profile, callback) => {
+            Entry.populate(profile,{ "path": "entries", populate: { "path": "meals userfoods defaultfoods customfoods" } },(err,entry) => {
+                if (err) { return res.status(400).json(err); }
+                callback();
+            });
+        }, (err) => {
+            res.json(user); 
+        });      
     });
 });
 
