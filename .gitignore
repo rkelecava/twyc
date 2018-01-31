@@ -1,3 +1,4 @@
 node_modules/
 server/_helpers/env.js
 server/_config/index.js
+client/vendors
